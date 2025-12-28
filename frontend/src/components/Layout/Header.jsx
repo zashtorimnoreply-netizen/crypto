@@ -8,6 +8,7 @@ const Header = ({ portfolioName, lastUpdated, onRefresh, loading = false }) => {
   const navItems = [
     { path: '/', label: 'Dashboard' },
     { path: '/portfolio', label: 'Portfolio' },
+    { path: '/comparison', label: 'Compare' },
     { path: '/simulator', label: 'Simulator' },
     { path: '/settings', label: 'Settings' },
   ];

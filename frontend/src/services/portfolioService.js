@@ -98,3 +98,12 @@ export const syncBybitTrades = async (portfolioId, apiKey, apiSecret, startTime)
     start_time: startTime,
   });
 };
+
+/**
+ * Get preset simulation results
+ */
+export const getPresetSimulation = async (presetId, startDate, endDate) => {
+  return retryRequest(() => 
+    api.get(`/simulations/${presetId}`, { params: { startDate, endDate } })
+  );
+};

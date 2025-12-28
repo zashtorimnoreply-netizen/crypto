@@ -6,6 +6,7 @@ import Portfolio from './pages/Portfolio';
 import Settings from './pages/Settings';
 import MetricsDemo from './pages/MetricsDemo';
 import SimulatorPage from './pages/SimulatorPage';
+import ComparisonPage from './pages/ComparisonPage';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
             <Route path="/simulator" element={<SimulatorPage />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/demo/metrics" element={<MetricsDemo />} />
+            <Route path="/comparison" element={<ComparisonPage />} />
           </Routes>
         </PortfolioProvider>
       </Router>
