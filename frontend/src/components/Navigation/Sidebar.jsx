@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { FiHome, FiPieChart, FiSettings } from 'react-icons/fi';
+import { FiHome, FiPieChart, FiTrendingUp, FiSettings } from 'react-icons/fi';
 
 const Sidebar = () => {
   const navItems = [
     { path: '/', icon: FiHome, label: 'Dashboard' },
     { path: '/portfolio', icon: FiPieChart, label: 'Portfolio' },
+    { path: '/simulator', icon: FiTrendingUp, label: 'Simulator' },
     { path: '/settings', icon: FiSettings, label: 'Settings' },
   ];
 
