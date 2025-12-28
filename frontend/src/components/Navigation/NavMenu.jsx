@@ -8,11 +8,12 @@ const NavMenu = () => {
   const navItems = [
     { path: '/', label: 'Dashboard' },
     { path: '/portfolio', label: 'Portfolio' },
+    { path: '/simulator', label: 'Simulator' },
     { path: '/settings', label: 'Settings' },
   ];
 
   return (
-    <div className="lg:hidden">
+    <div className="relative lg:hidden">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="p-2 text-gray-600 hover:text-gray-900"
@@ -21,9 +22,9 @@ const NavMenu = () => {
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-lg z-50">
-          <nav className="p-4">
-            <ul className="space-y-2">
+        <div className="absolute top-full right-0 mt-2 w-56 bg-white border border-gray-200 shadow-lg z-50 rounded-lg">
+          <nav className="p-2">
+            <ul className="space-y-1">
               {navItems.map((item) => (
                 <li key={item.path}>
                   <Link

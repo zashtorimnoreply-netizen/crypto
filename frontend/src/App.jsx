@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import Portfolio from './pages/Portfolio';
 import Settings from './pages/Settings';
 import MetricsDemo from './pages/MetricsDemo';
+import SimulatorPage from './pages/SimulatorPage';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/portfolio" element={<Portfolio />} />
+            <Route path="/simulator" element={<SimulatorPage />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/demo/metrics" element={<MetricsDemo />} />
           </Routes>
