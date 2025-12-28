@@ -187,6 +187,47 @@ Expected response:
   - Returns the status of database connections
   - Response: `{ status: "ok", postgres: "connected", redis: "connected" }`
 
+### CSV Import
+- **POST** `/api/portfolios/:portfolio_id/import-csv`
+  - Import trades from a CSV file
+  - Content-Type: `multipart/form-data`
+  - Required field: `file` (CSV file)
+  - CSV format: timestamp, symbol, side, qty, price, fee (optional), exchange (optional)
+
+- **GET** `/api/csv-template`
+  - Download a CSV template file for importing trades
+
+### Bybit Integration
+- **POST** `/api/portfolios/:portfolio_id/sync-bybit`
+  - Sync spot trading history from Bybit exchange
+  - Content-Type: `application/json`
+  - Request Body:
+    ```json
+    {
+      "api_key": "your-bybit-api-key",
+      "api_secret": "your-bybit-api-secret"
+    }
+    ```
+  - Response:
+    ```json
+    {
+      "success": true,
+      "fetched_count": 150,
+      "inserted_count": 145,
+      "skipped_count": 5,
+      "errors": [],
+      "message": "Synced 150 trades from Bybit. 145 new trades added, 5 duplicates skipped."
+    }
+    ```
+  - Features:
+    - Fetches all spot trading history from Bybit
+    - Handles pagination automatically (fetches all trades even if >100)
+    - Detects and skips duplicate trades
+    - Normalizes symbols (e.g., BTC/USDT → BTC)
+    - Implements exponential backoff for rate limits
+    - Does not store API credentials
+  - Note: API credentials are only used for the sync request and are not stored
+
 ## Database Schema
 
 ### Users Table
@@ -249,6 +290,15 @@ Expected response:
 │   ├── server.js              # Main application entry point
 │   ├── db.js                  # PostgreSQL connection and utilities
 │   ├── redis.js               # Redis connection and utilities
+│   ├── controllers/
+│   │   ├── csvController.js   # CSV import logic
+│   │   └── bybitController.js # Bybit API integration
+│   ├── routes/
+│   │   ├── csv.js             # CSV import routes
+│   │   └── bybit.js           # Bybit sync routes
+│   ├── utils/
+│   │   ├── csvTradeValidator.js   # CSV validation utilities
+│   │   └── symbolNormalizer.js    # Symbol normalization
 │   └── middleware/
 │       └── errorHandler.js    # Global error handling middleware
 ├── migrations/
