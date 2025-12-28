@@ -71,7 +71,7 @@ export const uploadCSVTrades = async (portfolioId, file) => {
   formData.append('file', file);
   formData.append('portfolio_id', portfolioId);
   
-  return api.post('/csv/upload', formData, {
+  return api.post(`/portfolios/${portfolioId}/import-csv`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -79,10 +79,19 @@ export const uploadCSVTrades = async (portfolioId, file) => {
 };
 
 /**
+ * Get CSV template for download
+ */
+export const getCsvTemplate = async () => {
+  return api.get('/csv-template', {
+    responseType: 'blob',
+  });
+};
+
+/**
  * Sync Bybit trades
  */
 export const syncBybitTrades = async (portfolioId, apiKey, apiSecret, startTime) => {
-  return api.post('/bybit/sync', {
+  return api.post(`/portfolios/${portfolioId}/sync-bybit`, {
     portfolio_id: portfolioId,
     api_key: apiKey,
     api_secret: apiSecret,
