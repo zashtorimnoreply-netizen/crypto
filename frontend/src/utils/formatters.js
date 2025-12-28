@@ -102,3 +102,33 @@ export const formatSymbol = (symbol) => {
 export const getTradeSideColor = (side) => {
   return side?.toLowerCase() === 'buy' ? 'text-green-600' : 'text-red-600';
 };
+
+/**
+ * Format PnL (Profit and Loss) with sign and color class
+ */
+export const formatPnL = (value, percent, includeSign = true) => {
+  if (value === null || value === undefined || isNaN(value)) {
+    return { text: '$0.00 (0.00%)', colorClass: 'text-gray-600', isPositive: false };
+  }
+  
+  const isPositive = value > 0;
+  const isNeutral = value === 0;
+  const sign = includeSign && isPositive && !isNeutral ? '+' : '';
+  
+  const formattedValue = formatCurrency(value);
+  const formattedPercent = percent !== undefined && percent !== null 
+    ? `${sign}${percent.toFixed(2)}%` 
+    : '';
+  
+  const text = formattedPercent 
+    ? `${sign}${formattedValue} (${formattedPercent})` 
+    : `${sign}${formattedValue}`;
+  
+  const colorClass = isNeutral 
+    ? 'text-gray-600' 
+    : isPositive 
+      ? 'text-green-600' 
+      : 'text-red-600';
+  
+  return { text, colorClass, isPositive, isNeutral };
+};

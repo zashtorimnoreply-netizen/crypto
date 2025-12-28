@@ -52,8 +52,8 @@ export const getPortfolioSummary = async (portfolioId) => {
 /**
  * Get portfolio positions
  */
-export const getPortfolioPositions = async (portfolioId) => {
-  return retryRequest(() => api.get(`/portfolios/${portfolioId}/positions`));
+export const getPortfolioPositions = async (portfolioId, params = {}) => {
+  return retryRequest(() => api.get(`/portfolios/${portfolioId}/positions`, { params }));
 };
 
 /**

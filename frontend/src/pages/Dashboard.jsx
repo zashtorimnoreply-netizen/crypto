@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { usePortfolioContext } from '../context/PortfolioContext';
 import { useEquityCurve } from '../hooks/usePortfolio';
+import { useAllocation } from '../hooks/useAllocation';
 import { formatCurrency } from '../utils/formatters';
 import { FiDollarSign, FiTrendingUp, FiActivity, FiPercent } from 'react-icons/fi';
 import Header from '../components/Layout/Header';
@@ -9,6 +11,7 @@ import CSVUpload from '../components/Import/CSVUpload';
 import BybitSync from '../components/Import/BybitSync';
 import EquityCurveChart from '../components/Charts/EquityCurveChart';
 import AllocationChart from '../components/Charts/AllocationChart';
+import PositionsList from '../components/Charts/PositionsList';
 import MetricsCard from '../components/Metrics/MetricsCard';
 import RiskIndicators from '../components/Metrics/RiskIndicators';
 import Loading from '../components/UI/Loading';
@@ -16,10 +19,29 @@ import Loading from '../components/UI/Loading';
 const Dashboard = () => {
   const { currentPortfolio, currentPortfolioId, loading, refreshPortfolio } = usePortfolioContext();
   const { data: equityCurve, loading: equityCurveLoading, error: equityCurveError, refetch: refetchEquityCurve } = useEquityCurve(currentPortfolioId);
+  const { 
+    allocation, 
+    positions, 
+    totalValue,
+    loading: allocationLoading, 
+    error: allocationError, 
+    refetch: refetchAllocation 
+  } = useAllocation(currentPortfolioId);
+
+  const [highlightedSymbol, setHighlightedSymbol] = useState(null);
 
   const handleImportSuccess = () => {
     refreshPortfolio();
     refetchEquityCurve();
+    refetchAllocation();
+  };
+
+  const handleSliceClick = (symbol) => {
+    setHighlightedSymbol(symbol === highlightedSymbol ? null : symbol);
+  };
+
+  const handlePositionClick = (symbol) => {
+    setHighlightedSymbol(symbol === highlightedSymbol ? null : symbol);
   };
 
   if (loading && !currentPortfolio) {
@@ -87,7 +109,26 @@ const Dashboard = () => {
               error={equityCurveError}
               onRetry={refetchEquityCurve}
             />
-            <AllocationChart data={[]} loading={false} />
+            <AllocationChart 
+              data={allocation} 
+              totalValue={totalValue}
+              loading={allocationLoading} 
+              error={allocationError}
+              onRetry={refetchAllocation}
+              onSliceClick={handleSliceClick}
+              highlightedSymbol={highlightedSymbol}
+            />
+          </div>
+
+          <div className="mb-6">
+            <PositionsList
+              positions={positions}
+              loading={allocationLoading}
+              error={allocationError}
+              onRetry={refetchAllocation}
+              onPositionClick={handlePositionClick}
+              highlightedSymbol={highlightedSymbol}
+            />
           </div>
 
           <RiskIndicators volatility={null} sharpeRatio={null} maxDrawdown={null} loading={false} />
