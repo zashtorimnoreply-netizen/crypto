@@ -1,0 +1,44 @@
+{
+  "name": "crypto-portfolio-backend",
+  "version": "1.0.0",
+  "description": "Backend API for crypto portfolio visualizer",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js",
+    "setup:db": "node scripts/setup-db.js",
+    "migrate:up": "node-pg-migrate up -m migrations --database-url-var DATABASE_URL",
+    "migrate:down": "node-pg-migrate down -m migrations --database-url-var DATABASE_URL",
+    "migrate:create": "node-pg-migrate create -m migrations",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zashtorimnoreply-netizen/crypto.git"
+  },
+  "keywords": [
+    "crypto",
+    "portfolio",
+    "backend",
+    "express",
+    "postgresql",
+    "redis",
+    "api"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/zashtorimnoreply-netizen/crypto/issues"
+  },
+  "homepage": "https://github.com/zashtorimnoreply-netizen/crypto#readme",
+  "dependencies": {
+    "body-parser": "^2.2.1",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "node-pg-migrate": "^8.0.4",
+    "pg": "^8.16.3",
+    "redis": "^5.10.0"
+  }
+}
