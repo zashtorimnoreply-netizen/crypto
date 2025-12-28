@@ -9,6 +9,7 @@ const errorHandler = require('./middleware/errorHandler');
 
 const csvRoutes = require('./routes/csv');
 const bybitRoutes = require('./routes/bybit');
+const pricesRoutes = require('./routes/prices');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -37,6 +38,7 @@ app.get('/health', async (req, res, next) => {
 
 app.use('/api', csvRoutes);
 app.use('/api', bybitRoutes);
+app.use('/api', pricesRoutes);
 
 app.use(errorHandler);
 
