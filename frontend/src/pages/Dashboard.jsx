@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { usePortfolioContext } from '../context/PortfolioContext';
-import { useEquityCurve } from '../hooks/usePortfolio';
+import useEquityCurve from '../hooks/useEquityCurve';
 import { useAllocation } from '../hooks/useAllocation';
 import { formatCurrency } from '../utils/formatters';
 import { FiDollarSign, FiTrendingUp, FiActivity, FiPercent } from 'react-icons/fi';
@@ -18,7 +18,7 @@ import Loading from '../components/UI/Loading';
 
 const Dashboard = () => {
   const { currentPortfolio, currentPortfolioId, loading, refreshPortfolio } = usePortfolioContext();
-  const { data: equityCurve, loading: equityCurveLoading, error: equityCurveError, refetch: refetchEquityCurve } = useEquityCurve(currentPortfolioId);
+  const { data: equityCurve, loading: equityCurveLoading, error: equityCurveError, stats, refetch: refetchEquityCurve } = useEquityCurve(currentPortfolioId);
   const { 
     allocation, 
     positions, 
@@ -35,6 +35,10 @@ const Dashboard = () => {
     refetchEquityCurve();
     refetchAllocation();
   };
+
+  const handleEquityDateRangeChange = useCallback(() => {
+    // Handle date range change - the hook will refetch automatically
+  }, []);
 
   const handleSliceClick = (symbol) => {
     setHighlightedSymbol(symbol === highlightedSymbol ? null : symbol);
@@ -104,15 +108,18 @@ const Dashboard = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <EquityCurveChart
+              portfolioName={currentPortfolio?.portfolio_name || 'My Portfolio'}
               data={equityCurve}
               loading={equityCurveLoading}
               error={equityCurveError}
-              onRetry={refetchEquityCurve}
+              onRetry={handleEquityDateRangeChange}
+              stats={stats}
+              showBenchmarks={true}
             />
-            <AllocationChart 
-              data={allocation} 
+            <AllocationChart
+              data={allocation}
               totalValue={totalValue}
-              loading={allocationLoading} 
+              loading={allocationLoading}
               error={allocationError}
               onRetry={refetchAllocation}
               onSliceClick={handleSliceClick}
