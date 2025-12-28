@@ -11,6 +11,7 @@ const csvRoutes = require('./routes/csv');
 const bybitRoutes = require('./routes/bybit');
 const pricesRoutes = require('./routes/prices');
 const portfoliosRoutes = require('./routes/portfolios');
+const simulationsRoutes = require('./routes/simulations');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -41,6 +42,7 @@ app.use('/api', csvRoutes);
 app.use('/api', bybitRoutes);
 app.use('/api', pricesRoutes);
 app.use('/api', portfoliosRoutes);
+app.use('/api', simulationsRoutes);
 
 app.use(errorHandler);
 
