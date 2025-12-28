@@ -2,8 +2,7 @@ import { useState, useCallback } from 'react';
 import { usePortfolioContext } from '../context/PortfolioContext';
 import useEquityCurve from '../hooks/useEquityCurve';
 import { useAllocation } from '../hooks/useAllocation';
-import { formatCurrency } from '../utils/formatters';
-import { FiDollarSign, FiTrendingUp, FiActivity, FiPercent } from 'react-icons/fi';
+import { useMetrics } from '../hooks/useMetrics';
 import Header from '../components/Layout/Header';
 import LeftPanel from '../components/Layout/LeftPanel';
 import RightPanel from '../components/Layout/RightPanel';
@@ -12,7 +11,7 @@ import BybitSync from '../components/Import/BybitSync';
 import EquityCurveChart from '../components/Charts/EquityCurveChart';
 import AllocationChart from '../components/Charts/AllocationChart';
 import PositionsList from '../components/Charts/PositionsList';
-import MetricsCard from '../components/Metrics/MetricsCard';
+import MetricsGrid from '../components/Metrics/MetricsGrid';
 import RiskIndicators from '../components/Metrics/RiskIndicators';
 import Loading from '../components/UI/Loading';
 
@@ -27,6 +26,7 @@ const Dashboard = () => {
     error: allocationError, 
     refetch: refetchAllocation 
   } = useAllocation(currentPortfolioId);
+  const { metrics, loading: metricsLoading, error: metricsError, refetch: refetchMetrics } = useMetrics(currentPortfolioId);
 
   const [highlightedSymbol, setHighlightedSymbol] = useState(null);
 
@@ -34,6 +34,7 @@ const Dashboard = () => {
     refreshPortfolio();
     refetchEquityCurve();
     refetchAllocation();
+    refetchMetrics();
   };
 
   const handleEquityDateRangeChange = useCallback(() => {
@@ -52,45 +53,16 @@ const Dashboard = () => {
     return <Loading fullScreen text="Loading portfolio..." />;
   }
 
-  // Mock metrics (replace with real data from backend)
-  const mockMetrics = [
-    {
-      title: 'Total Value',
-      value: formatCurrency(125430.50),
-      change: 5.3,
-      icon: FiDollarSign,
-      tooltip: 'Total portfolio value in USD',
-    },
-    {
-      title: 'Total Return',
-      value: '+23.4%',
-      change: 2.1,
-      icon: FiTrendingUp,
-      tooltip: 'Total return since inception',
-    },
-    {
-      title: 'Daily Change',
-      value: formatCurrency(1250.30),
-      change: 1.0,
-      icon: FiActivity,
-      tooltip: 'Change in the last 24 hours',
-    },
-    {
-      title: 'Win Rate',
-      value: '68.5%',
-      change: 0,
-      icon: FiPercent,
-      tooltip: 'Percentage of profitable trades',
-    },
-  ];
-
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       <Header
         portfolioName={currentPortfolio?.portfolio_name || 'My Portfolio'}
         lastUpdated={currentPortfolio?.updated_at}
-        onRefresh={refreshPortfolio}
-        loading={loading}
+        onRefresh={() => {
+          refreshPortfolio();
+          refetchMetrics();
+        }}
+        loading={loading || metricsLoading}
       />
       
       <div className="flex flex-1 overflow-hidden">
@@ -100,10 +72,9 @@ const Dashboard = () => {
         </LeftPanel>
 
         <RightPanel>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            {mockMetrics.map((metric, index) => (
-              <MetricsCard key={index} {...metric} />
-            ))}
+          <div className="mb-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Key Performance Indicators</h2>
+            <MetricsGrid metrics={metrics} loading={metricsLoading} error={metricsError} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -138,7 +109,7 @@ const Dashboard = () => {
             />
           </div>
 
-          <RiskIndicators volatility={null} sharpeRatio={null} maxDrawdown={null} loading={false} />
+          <RiskIndicators metrics={metrics} loading={metricsLoading} />
         </RightPanel>
       </div>
     </div>
