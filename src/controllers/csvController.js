@@ -3,6 +3,7 @@ const csvParser = require('csv-parser');
 
 const db = require('../db');
 const { validateAndNormalizeTradeRow, isEmpty } = require('../utils/csvTradeValidator');
+const { invalidatePortfolioCache } = require('./portfolioSummaryController');
 
 const MAX_ROWS = 100000;
 const BATCH_SIZE = 500;
@@ -282,6 +283,9 @@ async function importCsvTrades(req, res, next) {
       errors > 0
         ? `Imported ${imported}/${total_rows} trades. ${errors} rows have errors (see errors_detail).`
         : `Successfully imported ${imported} trades.`;
+
+    // Invalidate cache for this portfolio
+    await invalidatePortfolioCache(portfolio_id);
 
     return res.status(200).json({
       success: true,

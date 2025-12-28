@@ -1,5 +1,6 @@
 const express = require('express');
 const { getEquityCurve, getPortfolio, listPortfolios, createPortfolio } = require('../controllers/portfolioController');
+const { getPortfolioSummary, getPortfolioAllocation, getPortfolioPositions } = require('../controllers/portfolioSummaryController');
 
 const router = express.Router();
 
@@ -64,5 +65,78 @@ router.get('/portfolios/:portfolio_id', getPortfolio);
  * }
  */
 router.get('/portfolios/:portfolio_id/equity-curve', getEquityCurve);
+
+/**
+ * @route GET /api/portfolios/:portfolio_id/summary
+ * @description Get portfolio summary with current state, allocation, metrics, and statistics
+ * @param {string} portfolio_id - Portfolio UUID
+ * @returns {object} Comprehensive portfolio summary
+ * 
+ * @example
+ * GET /api/portfolios/123e4567-e89b-12d3-a456-426614174000/summary
+ * 
+ * Response:
+ * {
+ *   "success": true,
+ *   "portfolio_id": "123e4567-e89b-12d3-a456-426614174000",
+ *   "portfolio_name": "My Portfolio",
+ *   "current_state": {
+ *     "total_value": 25000.00,
+ *     "cost_basis": 19500.00,
+ *     "pnl": { "value": 5500.00, "percent": 28.2 },
+ *     "last_updated": "2024-12-28T14:30:00Z"
+ *   },
+ *   "allocation": [...],
+ *   "key_metrics": { ... },
+ *   "stats": { ... }
+ * }
+ */
+router.get('/portfolios/:portfolio_id/summary', getPortfolioSummary);
+
+/**
+ * @route GET /api/portfolios/:portfolio_id/allocation
+ * @description Get pie chart data - asset allocation breakdown
+ * @param {string} portfolio_id - Portfolio UUID
+ * @returns {object} Current allocation by symbol
+ * 
+ * @example
+ * GET /api/portfolios/123e4567-e89b-12d3-a456-426614174000/allocation
+ * 
+ * Response:
+ * {
+ *   "success": true,
+ *   "portfolio_id": "123e4567-e89b-12d3-a456-426614174000",
+ *   "current_value": 25000.00,
+ *   "allocation": [
+ *     { "symbol": "BTC", "value": 21250.00, "percent": 85.0, "holdings": 0.5, "price": 42500.00 },
+ *     { "symbol": "ETH", "value": 3750.00, "percent": 15.0, "holdings": 10, "price": 2300.00 }
+ *   ],
+ *   "last_updated": "2024-12-28T14:30:00Z"
+ * }
+ */
+router.get('/portfolios/:portfolio_id/allocation', getPortfolioAllocation);
+
+/**
+ * @route GET /api/portfolios/:portfolio_id/positions
+ * @description Get detailed position breakdown with full trade history
+ * @param {string} portfolio_id - Portfolio UUID
+ * @query {string} [sort_by] - Sort field: "value" (default), "symbol", "percent", "pnl"
+ * @query {string} [order] - Sort order: "desc" (default), "asc"
+ * @returns {object} Detailed positions with PnL calculations
+ * 
+ * @example
+ * GET /api/portfolios/123e4567-e89b-12d3-a456-426614174000/positions?sort_by=value&order=desc
+ * 
+ * Response:
+ * {
+ *   "success": true,
+ *   "portfolio_id": "123e4567-e89b-12d3-a456-426614174000",
+ *   "total_value": 25000.00,
+ *   "positions": [...],
+ *   "summary": { ... },
+ *   "last_updated": "2024-12-28T14:30:00Z"
+ * }
+ */
+router.get('/portfolios/:portfolio_id/positions', getPortfolioPositions);
 
 module.exports = router;

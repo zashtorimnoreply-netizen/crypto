@@ -1,6 +1,7 @@
 const ccxt = require('ccxt');
 const db = require('../db');
 const { normalizeSymbol } = require('../utils/symbolNormalizer');
+const { invalidatePortfolioCache } = require('./portfolioSummaryController');
 
 const MAX_RETRIES = 3;
 const INITIAL_BACKOFF_MS = 1000;
@@ -322,6 +323,11 @@ async function syncBybitTrades(req, res, next) {
     }
     
     await client.query('COMMIT');
+    
+    // Invalidate cache for this portfolio if new trades were added
+    if (insertedCount > 0) {
+      await invalidatePortfolioCache(portfolio_id);
+    }
     
     const message = insertedCount > 0
       ? `Synced ${allTrades.length} trades from Bybit. ${insertedCount} new trades added, ${skippedCount} duplicates skipped.`
