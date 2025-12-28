@@ -1,6 +1,13 @@
 import api, { retryRequest } from './api';
 
 /**
+ * Get portfolio summary (includes metrics)
+ */
+export const getPortfolioSummary = async (portfolioId) => {
+  return retryRequest(() => api.get(`/portfolios/${portfolioId}/summary`));
+};
+
+/**
  * Calculate portfolio metrics
  */
 export const calculateMetrics = async (portfolioId, params = {}) => {

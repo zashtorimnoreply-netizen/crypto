@@ -1,89 +1,88 @@
-import { FiAlertTriangle, FiShield, FiActivity } from 'react-icons/fi';
 import Card from '../UI/Card';
+import TrafficLight from '../UI/TrafficLight';
+import Tooltip from '../UI/Tooltip';
+import { 
+  getVolatilityColor, 
+  getDrawdownColor,
+  getVolatilityLabel,
+  getDrawdownLabel
+} from '../../utils/metricsHelpers';
 
-const RiskIndicators = ({ volatility, sharpeRatio, maxDrawdown, loading }) => {
+const RiskIndicators = ({ metrics, loading }) => {
   if (loading) {
     return (
       <Card title="Risk Indicators">
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 bg-gray-100 rounded-lg animate-pulse" />
+            <div key={i} className="h-20 bg-gray-100 rounded-lg animate-pulse" />
           ))}
         </div>
       </Card>
     );
   }
 
-  const getRiskLevel = (value, type) => {
-    if (type === 'volatility') {
-      if (value < 10) return { label: 'Low', color: 'green' };
-      if (value < 25) return { label: 'Medium', color: 'yellow' };
-      return { label: 'High', color: 'red' };
-    }
-    if (type === 'sharpe') {
-      if (value > 2) return { label: 'Excellent', color: 'green' };
-      if (value > 1) return { label: 'Good', color: 'blue' };
-      return { label: 'Poor', color: 'red' };
-    }
-    if (type === 'drawdown') {
-      if (Math.abs(value) < 10) return { label: 'Low', color: 'green' };
-      if (Math.abs(value) < 25) return { label: 'Medium', color: 'yellow' };
-      return { label: 'High', color: 'red' };
-    }
-    return { label: 'N/A', color: 'gray' };
-  };
+  if (!metrics || !metrics.key_metrics) {
+    return (
+      <Card title="Risk Indicators">
+        <div className="text-center py-8 text-gray-500">
+          No risk data available
+        </div>
+      </Card>
+    );
+  }
+
+  const { key_metrics } = metrics;
+  const volatility = key_metrics.volatility_percent ?? 0;
+  const maxDrawdown = key_metrics.max_drawdown_percent ?? 0;
+  const sharpeRatio = key_metrics.sharpe_ratio ?? 0;
 
   const indicators = [
     {
-      icon: FiActivity,
       title: 'Volatility',
-      value: volatility ? `${volatility.toFixed(2)}%` : 'N/A',
-      level: volatility ? getRiskLevel(volatility, 'volatility') : null,
+      value: volatility > 0 ? `${volatility.toFixed(1)}%` : 'N/A',
+      label: getVolatilityLabel(volatility),
+      color: getVolatilityColor(volatility),
+      tooltip: `Price fluctuations. ${volatility.toFixed(1)}% means your portfolio typically swings ±${volatility.toFixed(1)}% annually. Green (<20%) = low risk, Yellow (20-50%) = moderate risk, Red (>50%) = high risk.`,
     },
     {
-      icon: FiShield,
-      title: 'Sharpe Ratio',
-      value: sharpeRatio ? sharpeRatio.toFixed(2) : 'N/A',
-      level: sharpeRatio ? getRiskLevel(sharpeRatio, 'sharpe') : null,
-    },
-    {
-      icon: FiAlertTriangle,
       title: 'Max Drawdown',
-      value: maxDrawdown ? `${maxDrawdown.toFixed(2)}%` : 'N/A',
-      level: maxDrawdown ? getRiskLevel(maxDrawdown, 'drawdown') : null,
+      value: maxDrawdown !== 0 ? `${maxDrawdown.toFixed(1)}%` : 'N/A',
+      label: getDrawdownLabel(maxDrawdown),
+      color: getDrawdownColor(maxDrawdown),
+      tooltip: `Largest peak-to-trough decline. Shows worst-case scenario. Green (>-10%) = minor, Yellow (-10% to -30%) = moderate, Red (<-30%) = severe.`,
+    },
+    {
+      title: 'Sharpe Ratio',
+      value: sharpeRatio > 0 ? sharpeRatio.toFixed(2) : 'N/A',
+      label: sharpeRatio > 2 ? 'Excellent' : sharpeRatio > 1 ? 'Good' : sharpeRatio > 0 ? 'Fair' : 'N/A',
+      color: sharpeRatio > 2 ? 'green' : sharpeRatio > 1 ? 'yellow' : 'gray',
+      tooltip: 'Risk-adjusted returns. Higher is better. Above 2 is excellent, above 1 is good, below 1 means you could get better returns with less risk elsewhere.',
     },
   ];
 
   return (
     <Card title="Risk Indicators">
       <div className="space-y-4">
-        {indicators.map((indicator, index) => {
-          const Icon = indicator.icon;
-          const levelColors = {
-            green: 'bg-green-50 text-green-700 border-green-200',
-            yellow: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-            red: 'bg-red-50 text-red-700 border-red-200',
-            blue: 'bg-blue-50 text-blue-700 border-blue-200',
-            gray: 'bg-gray-50 text-gray-700 border-gray-200',
-          };
-
-          return (
-            <div key={index} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-              <div className="flex items-center gap-3">
-                <Icon className="w-5 h-5 text-gray-600" />
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{indicator.title}</p>
-                  <p className="text-lg font-bold text-gray-700">{indicator.value}</p>
-                </div>
+        {indicators.map((indicator, index) => (
+          <div 
+            key={index} 
+            className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <p className="text-sm font-medium text-gray-900">{indicator.title}</p>
+                <Tooltip content={indicator.tooltip} position="right" multiline maxWidth="max-w-md">
+                  <span className="text-gray-400 text-xs cursor-help hover:text-gray-600">ⓘ</span>
+                </Tooltip>
               </div>
-              {indicator.level && (
-                <span className={`px-3 py-1 text-xs font-medium border rounded-full ${levelColors[indicator.level.color]}`}>
-                  {indicator.level.label}
-                </span>
-              )}
+              <p className="text-xl font-bold text-gray-700">{indicator.value}</p>
             </div>
-          );
-        })}
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-gray-600">{indicator.label}</span>
+              <TrafficLight color={indicator.color} size="lg" />
+            </div>
+          </div>
+        ))}
       </div>
     </Card>
   );

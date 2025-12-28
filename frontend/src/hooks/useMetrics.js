@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { calculateMetrics, getPortfolioAllocation } from '../services/metricsService';
+import { calculateMetrics, getPortfolioAllocation, getPortfolioSummary } from '../services/metricsService';
 
 export const useMetrics = (portfolioId, params = {}) => {
   const [metrics, setMetrics] = useState(null);
@@ -12,7 +12,16 @@ export const useMetrics = (portfolioId, params = {}) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await calculateMetrics(portfolioId, params);
+      
+      // Try to get portfolio summary which includes metrics
+      let response;
+      try {
+        response = await getPortfolioSummary(portfolioId);
+      } catch {
+        // Fall back to old metrics endpoint if summary doesn't exist
+        response = await calculateMetrics(portfolioId, params);
+      }
+      
       setMetrics(response.data);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to load metrics');
@@ -20,11 +29,22 @@ export const useMetrics = (portfolioId, params = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [portfolioId, JSON.stringify(params)]);
+  }, [portfolioId, params]);
 
   useEffect(() => {
     loadMetrics();
   }, [loadMetrics]);
+
+  // Auto-refresh every 5 minutes
+  useEffect(() => {
+    if (!portfolioId) return;
+    
+    const interval = setInterval(() => {
+      loadMetrics();
+    }, 5 * 60 * 1000); // 5 minutes
+    
+    return () => clearInterval(interval);
+  }, [portfolioId, loadMetrics]);
 
   return { metrics, loading, error, refetch: loadMetrics };
 };

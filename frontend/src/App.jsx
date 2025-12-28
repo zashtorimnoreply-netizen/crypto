@@ -4,6 +4,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import Dashboard from './pages/Dashboard';
 import Portfolio from './pages/Portfolio';
 import Settings from './pages/Settings';
+import MetricsDemo from './pages/MetricsDemo';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/portfolio" element={<Portfolio />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/demo/metrics" element={<MetricsDemo />} />
           </Routes>
         </PortfolioProvider>
       </Router>
