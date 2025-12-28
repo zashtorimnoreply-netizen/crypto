@@ -7,6 +7,8 @@ const db = require('./db');
 const { connectRedis, checkConnection: checkRedisConnection } = require('./redis');
 const errorHandler = require('./middleware/errorHandler');
 
+const csvRoutes = require('./routes/csv');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -31,6 +33,8 @@ app.get('/health', async (req, res, next) => {
     next(error);
   }
 });
+
+app.use('/api', csvRoutes);
 
 app.use(errorHandler);
 
