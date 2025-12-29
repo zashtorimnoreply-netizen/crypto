@@ -3,6 +3,7 @@ import { FiRefreshCw } from 'react-icons/fi';
 import { formatRelativeTime } from '../../utils/formatters';
 import Button from '../UI/Button';
 import NavMenu from '../Navigation/NavMenu';
+import ShareButton from '../Layout/ShareButton';
 
 const Header = ({ portfolioName, lastUpdated, onRefresh, loading = false }) => {
   const navItems = [
@@ -60,6 +61,8 @@ const Header = ({ portfolioName, lastUpdated, onRefresh, loading = false }) => {
             <FiRefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
+
+          <ShareButton portfolioName={portfolioName} />
         </div>
       </div>
     </header>
