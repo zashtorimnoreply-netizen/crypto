@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { format, startOfYear } from 'date-fns';
 import { usePortfolioContext } from '../context/PortfolioContext';
 import useComparisonData from '../hooks/useComparisonData';
@@ -6,12 +6,14 @@ import Header from '../components/Layout/Header';
 import LeftPanel from '../components/Layout/LeftPanel';
 import RightPanel from '../components/Layout/RightPanel';
 import Loading from '../components/UI/Loading';
+import ExportButton from '../components/UI/ExportButton';
 import DateRangeComparisonSelector from '../components/Comparison/DateRangeComparisonSelector';
 import ComparisonChartsView from '../components/Comparison/ComparisonChartsView';
 import ComparisonMetricsTable from '../components/Comparison/ComparisonMetricsTable';
 
 const ComparisonPage = () => {
   const { currentPortfolio, currentPortfolioId, loading: portfolioLoading } = usePortfolioContext();
+  const comparisonChartRef = useRef(null);
   
   const [startDate, setStartDate] = useState(() => {
     const ytd = startOfYear(new Date());
@@ -87,7 +89,17 @@ const ComparisonPage = () => {
         </LeftPanel>
 
         <RightPanel>
-          <div className="space-y-6">
+          <div className="space-y-6" ref={comparisonChartRef}>
+            {chartData && chartData.length > 0 && (
+              <div className="flex justify-end mb-4">
+                <ExportButton 
+                  elementRef={comparisonChartRef} 
+                  filename="portfolio_comparison"
+                  label="Export Comparison"
+                />
+              </div>
+            )}
+            
             {/* Comparison Chart */}
             <ComparisonChartsView
               data={chartData}

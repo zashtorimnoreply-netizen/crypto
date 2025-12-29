@@ -1,14 +1,16 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useRef } from 'react';
 import Header from '../components/Layout/Header';
 import LeftPanel from '../components/Layout/LeftPanel';
 import RightPanel from '../components/Layout/RightPanel';
 import DCAParameterForm from '../components/Simulator/DCAParameterForm';
 import DCAResultsView from '../components/Simulator/DCAResultsView';
+import ExportButton from '../components/UI/ExportButton';
 import useSimulation from '../hooks/useSimulation';
 
 const SimulatorPage = () => {
   const { simulationData, loading, error, runSimulation, clearResults } = useSimulation();
   const [lastParams, setLastParams] = useState(null);
+  const dcaChartRef = useRef(null);
 
   const handleRunSimulation = useCallback(
     async (params) => {
@@ -42,7 +44,18 @@ const SimulatorPage = () => {
         </LeftPanel>
 
         <RightPanel>
-          <DCAResultsView simulationData={simulationData} loading={loading} error={error} onRetry={handleRetry} />
+          <div ref={dcaChartRef}>
+            {simulationData && (
+              <div className="flex justify-end mb-4">
+                <ExportButton 
+                  elementRef={dcaChartRef} 
+                  filename="dca_simulation"
+                  label="Export Simulation"
+                />
+              </div>
+            )}
+            <DCAResultsView simulationData={simulationData} loading={loading} error={error} onRetry={handleRetry} />
+          </div>
         </RightPanel>
       </div>
     </div>

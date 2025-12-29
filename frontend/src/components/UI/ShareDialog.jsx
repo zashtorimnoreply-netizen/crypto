@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FiX, FiCopy, FiCheck, FiExternalLink, FiAlertCircle } from 'react-icons/fi';
 import Card from './Card';
+import Tooltip from './Tooltip';
+import { TOOLTIPS } from '../../utils/tooltips';
 
 const ShareDialog = ({ isOpen, onClose, portfolioId, portfolioName }) => {
   const [reportUrl, setReportUrl] = useState('');
@@ -138,9 +140,14 @@ const ShareDialog = ({ isOpen, onClose, portfolioId, portfolioName }) => {
           {/* Header */}
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h3 id="share-dialog-title" className="text-lg font-medium leading-6 text-gray-900">
-                Share Your Portfolio
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 id="share-dialog-title" className="text-lg font-medium leading-6 text-gray-900">
+                  Share Your Portfolio
+                </h3>
+                <Tooltip content={TOOLTIPS.sharePortfolio} position="bottom" multiline maxWidth="max-w-md">
+                  <span className="text-gray-400 text-xs cursor-help hover:text-gray-600">ⓘ</span>
+                </Tooltip>
+              </div>
               <p className="mt-1 text-sm text-gray-500">
                 Generate a public link to share your portfolio snapshot
               </p>

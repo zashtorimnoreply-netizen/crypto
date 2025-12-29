@@ -63,3 +63,81 @@ export const isValidFileSize = (file, maxSizeMB = 5) => {
   const fileSizeMB = file.size / (1024 * 1024);
   return fileSizeMB <= maxSizeMB;
 };
+
+/**
+ * Validate date range
+ * @param {string} startDate - Start date (YYYY-MM-DD)
+ * @param {string} endDate - End date (YYYY-MM-DD)
+ * @returns {Array<string>} Array of error messages (empty if valid)
+ */
+export const validateDateRange = (startDate, endDate) => {
+  const errors = [];
+  
+  if (!startDate || !endDate) {
+    errors.push('Both start and end dates are required');
+    return errors;
+  }
+
+  if (!isValidDate(startDate)) {
+    errors.push('Invalid start date format');
+  }
+
+  if (!isValidDate(endDate)) {
+    errors.push('Invalid end date format');
+  }
+
+  if (errors.length === 0) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    if (start > end) {
+      errors.push('Start date must be before end date');
+    }
+    if (end > new Date()) {
+      errors.push('End date cannot be in the future');
+    }
+  }
+  
+  return errors;
+};
+
+/**
+ * Validate investment amount
+ * @param {number} amount - Amount to validate
+ * @returns {Array<string>} Array of error messages (empty if valid)
+ */
+export const validateAmount = (amount) => {
+  const errors = [];
+  
+  if (!amount) {
+    errors.push('Amount is required');
+    return errors;
+  }
+
+  if (!isValidNumber(amount)) {
+    errors.push('Amount must be a valid number');
+  } else if (amount <= 0) {
+    errors.push('Amount must be greater than 0');
+  } else if (amount > 1000000) {
+    errors.push('Amount cannot exceed $1,000,000');
+  }
+  
+  return errors;
+};
+
+/**
+ * Validate portfolio ID
+ * @param {string} portfolioId - Portfolio ID to validate
+ * @returns {Array<string>} Array of error messages (empty if valid)
+ */
+export const validatePortfolioId = (portfolioId) => {
+  if (!portfolioId) {
+    return ['Portfolio ID is required'];
+  }
+
+  if (!isValidUUID(portfolioId)) {
+    return ['Invalid portfolio ID format'];
+  }
+  
+  return [];
+};

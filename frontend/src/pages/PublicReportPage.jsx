@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../services/api';
 import Card from '../components/UI/Card';
 import ErrorBoundary from '../components/ErrorBoundary';
+import ExportButton from '../components/UI/ExportButton';
 import { FiExternalLink, FiEye, FiCalendar, FiAlertCircle, FiLoader } from 'react-icons/fi';
 
 const PublicReportPage = () => {
@@ -10,6 +11,7 @@ const PublicReportPage = () => {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const reportRef = useRef(null);
 
   useEffect(() => {
     const fetchReport = async () => {
@@ -99,7 +101,7 @@ const PublicReportPage = () => {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" ref={reportRef}>
           {/* Header */}
           <div className="mb-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between">
@@ -111,11 +113,16 @@ const PublicReportPage = () => {
                   Public portfolio snapshot created on {formatDate(createdAt)}
                 </p>
               </div>
-              <div className="mt-4 md:mt-0">
+              <div className="mt-4 md:mt-0 flex items-center gap-3">
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
                   <FiEye className="w-4 h-4 mr-2" />
                   Viewed {metadata.viewCount} {metadata.viewCount === 1 ? 'time' : 'times'}
                 </span>
+                <ExportButton 
+                  elementRef={reportRef} 
+                  filename={`${portfolioName.replace(/\s+/g, '_')}_snapshot`}
+                  label="Download Report"
+                />
               </div>
             </div>
           </div>
