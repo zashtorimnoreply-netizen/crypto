@@ -22,8 +22,8 @@ const BybitSync = ({ portfolioId, onSuccess }) => {
       setError('API Key is required');
       return false;
     }
-    if (apiKey.length < 20 || apiKey.length > 50) {
-      setError('Invalid API Key format (20-50 characters expected)');
+    if (apiKey.length < 15 || apiKey.length > 50) {
+      setError('Invalid API Key format (15-50 characters expected)');
       return false;
     }
     if (!/^[a-zA-Z0-9]+$/.test(apiKey)) {
