@@ -36,6 +36,8 @@
   },
   "homepage": "https://github.com/zashtorimnoreply-netizen/crypto#readme",
   "dependencies": {
+    "@sentry/node": "^7.119.0",
+    "@sentry/profiling-node": "^7.119.0",
     "axios": "^1.6.0",
     "body-parser": "^2.2.1",
     "ccxt": "^4.5.29",
