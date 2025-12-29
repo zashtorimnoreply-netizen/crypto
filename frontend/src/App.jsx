@@ -1,8 +1,27 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import * as Sentry from '@sentry/react';
 import { PortfolioProvider } from './context/PortfolioContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import Loading from './components/UI/Loading';
+
+// Initialize Sentry
+if (import.meta.env.VITE_SENTRY_DSN) {
+  Sentry.init({
+    dsn: import.meta.env.VITE_SENTRY_DSN,
+    environment: import.meta.env.MODE || 'development',
+    tracesSampleRate: import.meta.env.MODE === 'production' ? 0.1 : 1.0,
+    integrations: [
+      Sentry.browserTracingIntegration(),
+      Sentry.replayIntegration({
+        maskAllText: true,
+        blockAllMedia: true,
+      }),
+    ],
+    replaysSessionSampleRate: 0.1,
+    replaysOnErrorSampleRate: 1.0,
+  });
+}
 
 // Lazy load heavy pages for code splitting
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -42,4 +61,7 @@ function App() {
   );
 }
 
-export default App;
+// Wrap App with Sentry profiler if enabled
+export default import.meta.env.VITE_SENTRY_DSN 
+  ? Sentry.withProfiler(App) 
+  : App;

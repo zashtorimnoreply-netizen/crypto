@@ -1,5 +1,6 @@
 const { Pool } = require('pg');
 require('dotenv').config();
+const logger = require('./utils/logger');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -9,18 +10,37 @@ const pool = new Pool({
 });
 
 pool.on('error', (err) => {
-  console.error('Unexpected error on idle Postgres client', err);
+  logger.error('Unexpected error on idle Postgres client', err);
 });
+
+// Query timing threshold for slow query detection (500ms)
+const SLOW_QUERY_THRESHOLD_MS = 500;
 
 const query = async (text, params) => {
   const start = Date.now();
   try {
     const res = await pool.query(text, params);
     const duration = Date.now() - start;
-    console.log('Executed query', { text, duration, rows: res.rowCount });
+    
+    // Log query execution
+    const logContext = {
+      duration: `${duration}ms`,
+      rows: res.rowCount,
+      query: text.substring(0, 100), // Truncate long queries
+    };
+    
+    if (duration > SLOW_QUERY_THRESHOLD_MS) {
+      logger.warn('Slow database query detected', logContext);
+    } else {
+      logger.debug('Executed query', logContext);
+    }
+    
     return res;
   } catch (error) {
-    console.error('Database query error:', error);
+    logger.error('Database query error', error, {
+      query: text.substring(0, 100),
+      params: params ? JSON.stringify(params).substring(0, 100) : 'none',
+    });
     throw error;
   }
 };
@@ -30,7 +50,7 @@ const checkConnection = async () => {
     await pool.query('SELECT NOW()');
     return true;
   } catch (error) {
-    console.error('Database connection check failed:', error);
+    logger.error('Database connection check failed', error);
     return false;
   }
 };
