@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { format, startOfYear, subYears } from 'date-fns';
 import Button from '../UI/Button';
+import Tooltip from '../UI/Tooltip';
+import { TOOLTIPS } from '../../utils/tooltips';
 
 const DateRangeComparisonSelector = ({ 
   startDate, 
@@ -103,8 +105,11 @@ const DateRangeComparisonSelector = ({
     <div className={`space-y-4 ${className}`}>
       {/* Preset Buttons */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
           Quick Select
+          <Tooltip content={TOOLTIPS.dateRange} position="right" multiline maxWidth="max-w-md">
+            <span className="text-gray-400 text-xs cursor-help hover:text-gray-600">ⓘ</span>
+          </Tooltip>
         </label>
         <div className="flex flex-wrap gap-2">
           {[

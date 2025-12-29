@@ -1,6 +1,8 @@
 export { default as Button } from './Button';
 export { default as Card } from './Card';
 export { default as Error } from './Error';
+export { default as ErrorAlert } from './ErrorAlert';
+export { default as ExportButton } from './ExportButton';
 export { default as Loading } from './Loading';
 export { default as Tooltip } from './Tooltip';
 export { default as TrafficLight } from './TrafficLight';

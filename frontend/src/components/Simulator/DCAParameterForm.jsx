@@ -3,6 +3,8 @@ import { FiChevronDown, FiLoader, FiAlertCircle, FiInfo } from 'react-icons/fi';
 import { format, startOfYear, subYears } from 'date-fns';
 import Card from '../UI/Card';
 import Button from '../UI/Button';
+import Tooltip from '../UI/Tooltip';
+import { TOOLTIPS } from '../../utils/tooltips';
 
 const ASSET_OPTIONS = [
   { value: 'BTC', label: 'BTC' },
@@ -102,8 +104,11 @@ const DCAParameterForm = ({ onRunSimulation, loading = false, apiError = null })
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Asset Selection */}
         <div>
-          <label htmlFor="dca-asset" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="dca-asset" className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
             Asset
+            <Tooltip content={TOOLTIPS.dcaSimulator} position="right" multiline maxWidth="max-w-md">
+              <span className="text-gray-400 text-xs cursor-help hover:text-gray-600">ⓘ</span>
+            </Tooltip>
           </label>
           <div className="relative">
             <select
@@ -127,8 +132,11 @@ const DCAParameterForm = ({ onRunSimulation, loading = false, apiError = null })
 
         {/* Amount */}
         <div>
-          <label htmlFor="dca-amount" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="dca-amount" className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
             Monthly investment amount
+            <Tooltip content={TOOLTIPS.dcaAmount} position="right" multiline maxWidth="max-w-md">
+              <span className="text-gray-400 text-xs cursor-help hover:text-gray-600">ⓘ</span>
+            </Tooltip>
           </label>
           <input
             id="dca-amount"
@@ -154,8 +162,11 @@ const DCAParameterForm = ({ onRunSimulation, loading = false, apiError = null })
 
         {/* Period */}
         <div>
-          <label htmlFor="dca-period" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="dca-period" className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
             Time period
+            <Tooltip content={TOOLTIPS.dcaPeriod} position="right" multiline maxWidth="max-w-md">
+              <span className="text-gray-400 text-xs cursor-help hover:text-gray-600">ⓘ</span>
+            </Tooltip>
           </label>
           <div className="relative">
             <select

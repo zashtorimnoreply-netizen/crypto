@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { usePortfolioContext } from '../context/PortfolioContext';
 import useEquityCurve from '../hooks/useEquityCurve';
 import { useAllocation } from '../hooks/useAllocation';
@@ -14,6 +14,7 @@ import PositionsList from '../components/Charts/PositionsList';
 import MetricsGrid from '../components/Metrics/MetricsGrid';
 import RiskIndicators from '../components/Metrics/RiskIndicators';
 import Loading from '../components/UI/Loading';
+import ExportButton from '../components/UI/ExportButton';
 
 const Dashboard = () => {
   const { currentPortfolio, currentPortfolioId, loading, refreshPortfolio } = usePortfolioContext();
@@ -29,6 +30,11 @@ const Dashboard = () => {
   const { metrics, loading: metricsLoading, error: metricsError, refetch: refetchMetrics } = useMetrics(currentPortfolioId);
 
   const [highlightedSymbol, setHighlightedSymbol] = useState(null);
+  
+  // Refs for export functionality
+  const metricsRef = useRef(null);
+  const equityCurveRef = useRef(null);
+  const allocationRef = useRef(null);
 
   const handleImportSuccess = () => {
     refreshPortfolio();
@@ -72,30 +78,59 @@ const Dashboard = () => {
         </LeftPanel>
 
         <RightPanel>
-          <div className="mb-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Key Performance Indicators</h2>
+          <div className="mb-6" ref={metricsRef}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Key Performance Indicators</h2>
+              <ExportButton 
+                elementRef={metricsRef} 
+                filename="portfolio_metrics"
+                label="Export Metrics"
+              />
+            </div>
             <MetricsGrid metrics={metrics} loading={metricsLoading} error={metricsError} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <EquityCurveChart
-              portfolioName={currentPortfolio?.portfolio_name || 'My Portfolio'}
-              data={equityCurve}
-              loading={equityCurveLoading}
-              error={equityCurveError}
-              onRetry={handleEquityDateRangeChange}
-              stats={stats}
-              showBenchmarks={true}
-            />
-            <AllocationChart
-              data={allocation}
-              totalValue={totalValue}
-              loading={allocationLoading}
-              error={allocationError}
-              onRetry={refetchAllocation}
-              onSliceClick={handleSliceClick}
-              highlightedSymbol={highlightedSymbol}
-            />
+            <div ref={equityCurveRef}>
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-lg font-semibold text-gray-900">Equity Curve</h3>
+                <ExportButton 
+                  elementRef={equityCurveRef} 
+                  filename="portfolio_equity_curve"
+                  label="Export"
+                  className="!py-1 !px-2 text-xs"
+                />
+              </div>
+              <EquityCurveChart
+                portfolioName={currentPortfolio?.portfolio_name || 'My Portfolio'}
+                data={equityCurve}
+                loading={equityCurveLoading}
+                error={equityCurveError}
+                onRetry={handleEquityDateRangeChange}
+                stats={stats}
+                showBenchmarks={true}
+              />
+            </div>
+            <div ref={allocationRef}>
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-lg font-semibold text-gray-900">Allocation</h3>
+                <ExportButton 
+                  elementRef={allocationRef} 
+                  filename="portfolio_allocation"
+                  label="Export"
+                  className="!py-1 !px-2 text-xs"
+                />
+              </div>
+              <AllocationChart
+                data={allocation}
+                totalValue={totalValue}
+                loading={allocationLoading}
+                error={allocationError}
+                onRetry={refetchAllocation}
+                onSliceClick={handleSliceClick}
+                highlightedSymbol={highlightedSymbol}
+              />
+            </div>
           </div>
 
           <div className="mb-6">

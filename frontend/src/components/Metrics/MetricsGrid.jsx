@@ -11,6 +11,7 @@ import {
   getVolatilityLabel,
   getDrawdownLabel
 } from '../../utils/metricsHelpers';
+import { TOOLTIPS } from '../../utils/tooltips';
 
 const MetricsGrid = ({ metrics, loading = false, error = null }) => {
   // Prepare card data
@@ -24,7 +25,7 @@ const MetricsGrid = ({ metrics, loading = false, error = null }) => {
           subValue: '',
           description: 'Your total gain or loss from initial investment',
           trafficLightColor: 'gray',
-          tooltip: 'This is your total gain/loss from your initial investment. Green indicates profit, red indicates loss.',
+          tooltip: TOOLTIPS.totalPnL,
           valueColor: null,
         },
         {
@@ -34,7 +35,7 @@ const MetricsGrid = ({ metrics, loading = false, error = null }) => {
           subValue: '',
           description: 'Price fluctuation measure',
           trafficLightColor: 'gray',
-          tooltip: 'Measures price fluctuations. Higher volatility means more risk but potentially higher returns. Lower volatility means more stable returns.',
+          tooltip: TOOLTIPS.volatility,
           valueColor: null,
         },
         {
@@ -44,7 +45,7 @@ const MetricsGrid = ({ metrics, loading = false, error = null }) => {
           subValue: '',
           description: 'Largest peak-to-trough decline',
           trafficLightColor: 'gray',
-          tooltip: 'The largest decline from a peak to a trough in your portfolio value. Shows the worst-case scenario you experienced.',
+          tooltip: TOOLTIPS.maxDrawdown,
           valueColor: null,
         },
         {
@@ -54,7 +55,7 @@ const MetricsGrid = ({ metrics, loading = false, error = null }) => {
           subValue: '',
           description: 'Year-to-date performance',
           trafficLightColor: 'gray',
-          tooltip: 'Your return from January 1st to now, compared to BTC and ETH benchmarks.',
+          tooltip: TOOLTIPS.ytdReturn,
           valueColor: null,
         },
       ];
@@ -79,7 +80,7 @@ const MetricsGrid = ({ metrics, loading = false, error = null }) => {
         subValue: formatPercentWithSign(pnlPercent, 1) + ' return',
         description: 'Your total gain or loss from initial investment',
         trafficLightColor: getPnLColor(pnlPercent),
-        tooltip: 'This is your total gain/loss from your initial investment. Calculated as current portfolio value minus total cost basis (amount invested).',
+        tooltip: TOOLTIPS.totalPnL,
         valueColor: pnlPercent > 0 ? 'green' : pnlPercent < 0 ? 'red' : null,
       },
       {
@@ -89,7 +90,7 @@ const MetricsGrid = ({ metrics, loading = false, error = null }) => {
         subValue: volatility > 0 ? `${getVolatilityLabel(volatility)} • 30-day annualized` : 'Not available yet',
         description: 'Measures price fluctuations and risk',
         trafficLightColor: getVolatilityColor(volatility),
-        tooltip: `Price fluctuations measure. ${volatility.toFixed(1)}% annualized means your portfolio value typically swings ±${volatility.toFixed(1)}% annually. Higher volatility = more risk but potentially higher returns. Lower volatility = more stable but less upside potential.`,
+        tooltip: TOOLTIPS.volatility,
         valueColor: null,
       },
       {
@@ -101,7 +102,7 @@ const MetricsGrid = ({ metrics, loading = false, error = null }) => {
           : 'No significant drawdown',
         description: `${getDrawdownLabel(maxDrawdown)} decline from peak`,
         trafficLightColor: getDrawdownColor(maxDrawdown),
-        tooltip: 'Largest peak-to-trough decline in your portfolio. Shows the worst-case scenario you experienced. A -28.5% drawdown means at one point your portfolio was down 28.5% from its previous high.',
+        tooltip: TOOLTIPS.maxDrawdown,
         valueColor: null,
       },
       {
@@ -113,7 +114,7 @@ const MetricsGrid = ({ metrics, loading = false, error = null }) => {
           : 'Benchmark data unavailable',
         description: 'Performance vs BTC and ETH benchmarks',
         trafficLightColor: getYTDPerformanceColor(ytdReturn, ytdBtc, ytdEth),
-        tooltip: 'Your return from January 1st to now compared to BTC and ETH benchmarks. Green means you\'re outperforming BTC, yellow means between ETH and BTC, red means underperforming ETH.',
+        tooltip: TOOLTIPS.ytdReturn,
         valueColor: ytdReturn > 0 ? 'green' : ytdReturn < 0 ? 'red' : null,
       },
     ];
