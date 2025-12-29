@@ -4,3 +4,4 @@ export { default as Error } from './Error';
 export { default as Loading } from './Loading';
 export { default as Tooltip } from './Tooltip';
 export { default as TrafficLight } from './TrafficLight';
+export { default as ShareDialog } from './ShareDialog';
