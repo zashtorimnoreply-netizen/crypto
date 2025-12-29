@@ -1,7 +1,7 @@
-import { useState, useRef, useCallback, useContext } from 'react';
+import { useState, useRef, useCallback, useContext, useEffect } from 'react';
 import { FiUpload, FiX, FiAlertCircle, FiCheck, FiChevronDown, FiChevronUp, FiDownload } from 'react-icons/fi';
 import useImport from '../../hooks/useImport';
-import { getCsvTemplate } from '../../services/portfolioService';
+import { getCsvTemplate, getPortfolios } from '../../services/portfolioService';
 import PortfolioContext from '../../context/PortfolioContext';
 import Card from '../UI/Card';
 import Button from '../UI/Button';
@@ -15,13 +15,42 @@ const CSVUpload = ({ portfolioId, onSuccess }) => {
   const portfolios = portfolioContext?.portfolios || [];
   const currentPortfolioId = portfolioContext?.currentPortfolioId;
 
+  // Local state for portfolio management when context is not available
+  const [localPortfolios, setLocalPortfolios] = useState([]);
+  const [localSelectedPortfolioId, setLocalSelectedPortfolioId] = useState('');
+  const [localPortfoliosLoading, setLocalPortfoliosLoading] = useState(false);
+
+  // Fetch portfolios if no context available
+  useEffect(() => {
+    if (!portfolioContext && localPortfolios.length === 0 && !localPortfoliosLoading) {
+      const fetchPortfolios = async () => {
+        try {
+          setLocalPortfoliosLoading(true);
+          const response = await getPortfolios();
+          setLocalPortfolios(response.data || []);
+        } catch (err) {
+          console.error('Error loading portfolios:', err);
+        } finally {
+          setLocalPortfoliosLoading(false);
+        }
+      };
+      fetchPortfolios();
+    }
+  }, [portfolioContext, localPortfolios.length, localPortfoliosLoading]);
+
+  // Determine which portfolios list to use
+  const availablePortfolios = portfolios.length > 0 ? portfolios : localPortfolios;
+
+  // Determine which portfolio ID to use
+  const effectivePortfolioId = portfolioContext
+    ? String((portfolioId ?? currentPortfolioId ?? '') || '')
+    : (localSelectedPortfolioId || portfolioId || '');
+
   const fileInputRef = useRef(null);
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileError, setFileError] = useState(null);
   const [showErrorDetails, setShowErrorDetails] = useState(false);
-
-  const effectivePortfolioId = String((portfolioId ?? currentPortfolioId ?? '') || '');
 
   const { uploadCSV, loading, error, progress, clearError } = useImport(effectivePortfolioId);
   const [uploadResult, setUploadResult] = useState(null);
@@ -123,6 +152,8 @@ const CSVUpload = ({ portfolioId, onSuccess }) => {
 
     if (portfolioContext?.switchPortfolio) {
       portfolioContext.switchPortfolio(newPortfolioId);
+    } else {
+      setLocalSelectedPortfolioId(newPortfolioId);
     }
   }, [clearError, portfolioContext]);
 
@@ -180,10 +211,11 @@ const CSVUpload = ({ portfolioId, onSuccess }) => {
       <div className="p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Upload CSV</h3>
 
-        {portfolioContext && portfolios.length > 0 && (
+        {/* Portfolio Selector */}
+        {availablePortfolios.length > 0 ? (
           <div className="mb-4">
             <label htmlFor="csv-portfolio" className="block text-sm font-medium text-gray-700 mb-2">
-              Портфель
+              Portfolio
             </label>
             <div className="relative">
               <select
@@ -191,13 +223,13 @@ const CSVUpload = ({ portfolioId, onSuccess }) => {
                 value={effectivePortfolioId}
                 onChange={handlePortfolioChange}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 pr-10 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
-                aria-label="Выберите портфель"
+                aria-label="Select portfolio"
                 disabled={loading}
               >
                 <option value="" disabled>
-                  Выберите портфель
+                  Select a portfolio
                 </option>
-                {portfolios.map((p) => (
+                {availablePortfolios.map((p) => (
                   <option key={p.portfolio_id} value={String(p.portfolio_id)}>
                     {p.portfolio_name || `Portfolio ${p.portfolio_id}`}
                   </option>
@@ -205,13 +237,25 @@ const CSVUpload = ({ portfolioId, onSuccess }) => {
               </select>
               <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             </div>
+            {effectivePortfolioId && (
+              <p className="mt-2 text-sm text-green-600 flex items-center gap-1">
+                <FiCheck className="w-4 h-4" />
+                Selected: {availablePortfolios.find(p => String(p.portfolio_id) === effectivePortfolioId)?.portfolio_name || `Portfolio ${effectivePortfolioId}`}
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-2">
+            <FiAlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-yellow-800">Please select a portfolio first</p>
           </div>
         )}
 
-        {!effectivePortfolioId && (
+        {/* Warning when no portfolio selected */}
+        {!effectivePortfolioId && availablePortfolios.length > 0 && (
           <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-2">
             <FiAlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-yellow-800">Пожалуйста, выберите портфель перед загрузкой файла</p>
+            <p className="text-sm text-yellow-800">Please select a portfolio before uploading</p>
           </div>
         )}
         
