@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const compression = require('compression');
 require('dotenv').config();
 
 const db = require('./db');
@@ -18,6 +19,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
+app.use(compression()); // Enable gzip compression for API responses
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 

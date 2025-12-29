@@ -5,7 +5,27 @@ const { getCoingeckoId, getBybitPair, isStablecoin } = require('../utils/priceSy
 const { normalizeSymbol } = require('../utils/symbolNormalizer');
 
 const COINGECKO_API_URL = process.env.COINGECKO_API_URL || 'https://api.coingecko.com/api/v3';
-const PRICE_CACHE_TTL = parseInt(process.env.PRICE_CACHE_TTL) || 300; // 5 minutes default
+const PRICE_CACHE_TTL = parseInt(process.env.PRICE_CACHE_TTL) || 900; // 15 minutes default (increased from 5 min)
+const STABLE_CACHE_TTL = 3600; // 1 hour for stablecoins
+
+// Cache statistics
+const priceCacheStats = {
+  hits: 0,
+  misses: 0,
+};
+
+/**
+ * Get price cache statistics
+ */
+function getPriceCacheStats() {
+  const total = priceCacheStats.hits + priceCacheStats.misses;
+  const hitRate = total > 0 ? (priceCacheStats.hits / total) * 100 : 0;
+  return {
+    hits: priceCacheStats.hits,
+    misses: priceCacheStats.misses,
+    hitRate: hitRate.toFixed(2) + '%',
+  };
+}
 
 const MAX_RETRIES = 3;
 const INITIAL_BACKOFF_MS = 1000;
@@ -60,7 +80,7 @@ async function fetchWithRetry(fn, retries = MAX_RETRIES) {
 }
 
 /**
- * Get cached price from Redis
+ * Get cached price from Redis with statistics tracking
  * @param {string} symbol - Normalized symbol
  * @returns {object|null} Cached price data or null
  */
@@ -69,19 +89,22 @@ async function getCachedPrice(symbol) {
     const key = `price:${symbol.toUpperCase()}`;
     const cached = await redisClient.get(key);
     if (cached) {
-      console.log(`Redis cache HIT for ${symbol}`);
+      priceCacheStats.hits++;
+      console.log(`Price cache HIT for ${symbol}`);
       return JSON.parse(cached);
     }
-    console.log(`Redis cache MISS for ${symbol}`);
+    priceCacheStats.misses++;
+    console.log(`Price cache MISS for ${symbol}`);
     return null;
   } catch (error) {
     console.error('Redis cache error:', error.message);
+    priceCacheStats.misses++;
     return null;
   }
 }
 
 /**
- * Cache price in Redis
+ * Cache price in Redis with appropriate TTL
  * @param {string} symbol - Normalized symbol
  * @param {number} price - Price value
  * @param {Date} timestamp - Price timestamp
@@ -89,12 +112,13 @@ async function getCachedPrice(symbol) {
 async function cachePrice(symbol, price, timestamp) {
   try {
     const key = `price:${symbol.toUpperCase()}`;
+    const ttl = isStablecoin(symbol) ? STABLE_CACHE_TTL : PRICE_CACHE_TTL;
     const value = JSON.stringify({
       price,
       timestamp: timestamp.toISOString(),
     });
-    await redisClient.setEx(key, PRICE_CACHE_TTL, value);
-    console.log(`Cached ${symbol} = ${price} (TTL: ${PRICE_CACHE_TTL}s)`);
+    await redisClient.setEx(key, ttl, value);
+    console.log(`Cached ${symbol} = ${price} (TTL: ${ttl}s)`);
   } catch (error) {
     console.error('Redis cache error:', error.message);
   }
@@ -518,7 +542,9 @@ module.exports = {
   fetchWithRetry,
   sleep,
   rateLimitDelay,
+  getPriceCacheStats,
   PRICE_CACHE_TTL,
+  STABLE_CACHE_TTL,
   MAX_RETRIES,
   INITIAL_BACKOFF_MS,
 };

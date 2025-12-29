@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { formatCurrency } from '../../utils/formatters';
 import { CHART_COLORS } from '../../utils/constants';
@@ -17,51 +17,24 @@ const AllocationChart = ({
 }) => {
   const [activeIndex, setActiveIndex] = useState(null);
 
-  if (loading) {
-    return (
-      <Card title="Portfolio Allocation">
-        <div className="py-12">
-          <Loading size="md" />
-        </div>
-      </Card>
-    );
-  }
+  // Memoize chart data transformation to prevent unnecessary recalculations
+  const chartData = useMemo(() => {
+    if (!data || data.length === 0) return [];
+    return data.map((item, index) => ({
+      name: item.symbol,
+      value: parseFloat(item.value),
+      percent: item.percent,
+      holdings: item.holdings,
+      color: CHART_COLORS[index % CHART_COLORS.length],
+    }));
+  }, [data]);
 
-  if (error) {
-    return (
-      <Card title="Portfolio Allocation">
-        <Error message={error} onRetry={onRetry} />
-      </Card>
-    );
-  }
-
-  if (!data || data.length === 0) {
-    return (
-      <Card title="Portfolio Allocation">
-        <div className="text-center py-12">
-          <p className="text-gray-500 mb-4">No allocation data available</p>
-          <p className="text-sm text-gray-400">
-            Import trades to see portfolio allocation
-          </p>
-        </div>
-      </Card>
-    );
-  }
-
-  const chartData = data.map((item, index) => ({
-    name: item.symbol,
-    value: parseFloat(item.value),
-    percent: item.percent,
-    holdings: item.holdings,
-    color: CHART_COLORS[index % CHART_COLORS.length],
-  }));
-
-  const handlePieClick = (data, index) => {
+  const handlePieClick = (entry, index) => {
     setActiveIndex(index);
-    onSliceClick?.(data.name);
+    onSliceClick?.(entry.name);
   };
 
-  const handleMouseEnter = (data, index) => {
+  const handleMouseEnter = (entry, index) => {
     setActiveIndex(index);
   };
 
@@ -70,13 +43,15 @@ const AllocationChart = ({
   };
 
   // Custom label for pie slices
-  const renderLabel = (entry) => {
-    if (entry.percent < 5) return ''; // Hide label for small slices
-    return `${entry.percent.toFixed(1)}%`;
-  };
+  const renderLabel = useMemo(() => {
+    return (entry) => {
+      if (entry.percent < 5) return '';
+      return `${entry.percent.toFixed(1)}%`;
+    };
+  }, []);
 
   // Custom center label showing total value
-  const renderCenterLabel = () => {
+  const renderCenterLabel = useMemo(() => {
     return (
       <text
         x="50%"
@@ -102,7 +77,38 @@ const AllocationChart = ({
         </tspan>
       </text>
     );
-  };
+  }, [totalValue]);
+
+  if (loading) {
+    return (
+      <Card title="Portfolio Allocation">
+        <div className="py-12">
+          <Loading size="md" />
+        </div>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card title="Portfolio Allocation">
+        <Error message={error} onRetry={onRetry} />
+      </Card>
+    );
+  }
+
+  if (!chartData || chartData.length === 0) {
+    return (
+      <Card title="Portfolio Allocation">
+        <div className="text-center py-12">
+          <p className="text-gray-500 mb-4">No allocation data available</p>
+          <p className="text-sm text-gray-400">
+            Import trades to see portfolio allocation
+          </p>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card title="Portfolio Allocation" subtitle="Current holdings by value">
@@ -180,4 +186,5 @@ const AllocationChart = ({
   );
 };
 
-export default AllocationChart;
+// Memoize component to prevent unnecessary re-renders
+export default React.memo(AllocationChart);
