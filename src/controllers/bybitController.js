@@ -6,6 +6,8 @@ const { invalidatePortfolioCache } = require('./portfolioSummaryController');
 const MAX_RETRIES = 3;
 const INITIAL_BACKOFF_MS = 1000;
 const QTY_RELATIVE_TOLERANCE = 0.000001; // 0.0001%
+const PAGINATION_DELAY_MS = 50; // Reduced from 100ms for faster fetching
+const MAX_CONCURRENT_REQUESTS = 2; // Limit concurrent requests for rate limit safety
 
 function pad2(n) {
   return String(n).padStart(2, '0');
@@ -223,8 +225,8 @@ async function syncBybitTrades(req, res, next) {
           // Set since to just after the last trade timestamp for pagination
           since = lastTimestamp + 1;
           
-          // Add a small delay to respect rate limits
-          await sleep(100);
+          // Add a small delay to respect rate limits (reduced for better performance)
+          await sleep(PAGINATION_DELAY_MS);
         }
       }
       

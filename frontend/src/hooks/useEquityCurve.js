@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getEquityCurve } from '../services/portfolioService';
+import { downsampleEquityCurve } from '../utils/chartDownsampling';
 
 /**
  * Custom hook to fetch and manage equity curve data
@@ -7,11 +8,13 @@ import { getEquityCurve } from '../services/portfolioService';
  * @param {object} options - Options object containing startDate and endDate
  * @param {string} options.startDate - Start date in YYYY-MM-DD format
  * @param {string} options.endDate - End date in YYYY-MM-DD format
+ * @param {number} options.maxChartPoints - Maximum points for chart display (default: 500)
  * @returns {object} Equity curve data, loading state, error, stats, and refetch function
  */
 export const useEquityCurve = (portfolioId, options = {}) => {
-  const { startDate = null, endDate = null } = options;
+  const { startDate = null, endDate = null, maxChartPoints = 500 } = options;
   const [curve, setCurve] = useState([]);
+  const [rawCurve, setRawCurve] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState({
@@ -72,6 +75,7 @@ export const useEquityCurve = (portfolioId, options = {}) => {
   const fetchEquityCurve = useCallback(async (newStartDate = null, newEndDate = null) => {
     if (!portfolioId) {
       setCurve([]);
+      setRawCurve([]);
       setStats(calculateStats([]));
       setLoading(false);
       return;
@@ -92,7 +96,11 @@ export const useEquityCurve = (portfolioId, options = {}) => {
       const response = await getEquityCurve(portfolioId, params);
 
       const equityCurveData = response.data || [];
-      setCurve(equityCurveData);
+      setRawCurve(equityCurveData);
+
+      // Downsample for chart display if data is large
+      const downsampledData = downsampleEquityCurve(equityCurveData, maxChartPoints);
+      setCurve(downsampledData);
 
       // Use stats from API if available, otherwise calculate
       if (response.statistics) {
@@ -114,11 +122,12 @@ export const useEquityCurve = (portfolioId, options = {}) => {
       setError(err.response?.data?.error || 'Failed to load equity curve');
       console.error('Error loading equity curve:', err);
       setCurve([]);
+      setRawCurve([]);
       setStats(calculateStats([]));
     } finally {
       setLoading(false);
     }
-  }, [portfolioId, startDate, endDate, calculateStats]);
+  }, [portfolioId, startDate, endDate, maxChartPoints, calculateStats]);
 
   useEffect(() => {
     fetchEquityCurve();
@@ -126,6 +135,7 @@ export const useEquityCurve = (portfolioId, options = {}) => {
 
   return {
     curve,
+    rawCurve,
     loading,
     error,
     stats,

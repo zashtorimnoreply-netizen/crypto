@@ -3,6 +3,11 @@
  * 
  * Calculates DCA strategy performance compared to buy-and-hold (HODL) strategy
  * for single assets or asset pairs with historical price data.
+ * 
+ * Performance optimizations:
+ * - Pre-build price maps for O(1) lookups
+ * - Batch price fetches
+ * - Redis caching with 1-hour TTL
  */
 
 const priceService = require('./priceService');
@@ -12,6 +17,72 @@ const { normalizeSymbol } = require('../utils/symbolNormalizer');
 
 const CACHE_TTL_SECONDS = 3600; // 1 hour cache
 const COMMISSION_RATE = 0.001; // 0.1% commission
+
+// Simulation cache statistics
+const simCacheStats = {
+  hits: 0,
+  misses: 0,
+};
+
+/**
+ * Get simulation cache statistics
+ */
+function getSimCacheStats() {
+  const total = simCacheStats.hits + simCacheStats.misses;
+  const hitRate = total > 0 ? (simCacheStats.hits / total) * 100 : 0;
+  return {
+    hits: simCacheStats.hits,
+    misses: simCacheStats.misses,
+    hitRate: hitRate.toFixed(2) + '%',
+  };
+}
+
+/**
+ * Build a price lookup map from historical data for O(1) access
+ * @param {object[]} historicalPrices - Array of price data
+ * @returns {Map} Price map for fast lookups
+ */
+function buildPriceMap(historicalPrices) {
+  const priceMap = new Map();
+  for (const p of historicalPrices) {
+    const dateKey = p.timestamp.split('T')[0];
+    priceMap.set(dateKey, p.close);
+  }
+  return priceMap;
+}
+
+/**
+ * Get price for a specific date from pre-built price map (O(1) lookup)
+ * @param {Map} priceMap - Pre-built price map
+ * @param {string} targetDate - Target date (YYYY-MM-DD)
+ * @returns {number|null} Price or null if not found
+ */
+function getPriceFromMap(priceMap, targetDate) {
+  // Try exact date first
+  if (priceMap.has(targetDate)) {
+    return priceMap.get(targetDate);
+  }
+  
+  // Find nearest previous date using binary search
+  const dates = Array.from(priceMap.keys()).sort();
+  if (dates.length === 0) return null;
+  
+  let left = 0;
+  let right = dates.length - 1;
+  let result = null;
+  
+  while (left <= right) {
+    const mid = Math.floor((left + right) / 2);
+    if (dates[mid] <= targetDate) {
+      result = dates[mid];
+      left = mid + 1;
+    } else {
+      right = mid - 1;
+    }
+  }
+  
+  return result !== null ? priceMap.get(result) : null;
+}
 
 /**
  * Parse date string to Date object in UTC
@@ -167,6 +238,7 @@ function calculateDailyReturns(values) {
 
 /**
  * Calculate DCA daily equity curve for single asset
+ * Uses pre-built price map for O(1) lookups
  * @param {string} asset - Asset symbol
  * @param {Date} startDate - Start date
  * @param {Date} endDate - End date
@@ -184,6 +256,9 @@ async function getDCADaily(asset, startDate, endDate, amount, interval) {
     throw new Error(`No historical price data found for ${asset}`);
   }
   
+  // Build price map once for O(1) lookups
+  const priceMap = buildPriceMap(historicalPrices);
+  
   // Get all dates in range
   const allDates = getDatesInRange(startDate, endDate);
   
@@ -199,7 +274,7 @@ async function getDCADaily(asset, startDate, endDate, amount, interval) {
   for (const dateStr of allDates) {
     // Check if this is a purchase date
     if (purchaseDateSet.has(dateStr)) {
-      const price = getPriceForDate(historicalPrices, dateStr);
+      const price = getPriceFromMap(priceMap, dateStr);
       
       if (price !== null) {
         // Apply commission (reduce purchase amount)
@@ -211,8 +286,8 @@ async function getDCADaily(asset, startDate, endDate, amount, interval) {
       }
     }
     
-    // Calculate current value
-    const currentPrice = getPriceForDate(historicalPrices, dateStr);
+    // Calculate current value using O(1) lookup
+    const currentPrice = getPriceFromMap(priceMap, dateStr);
     const currentValue = currentPrice !== null ? totalHoldings * currentPrice : 0;
     
     dailyData.push({
@@ -229,6 +304,7 @@ async function getDCADaily(asset, startDate, endDate, amount, interval) {
 
 /**
  * Calculate DCA daily equity curve for asset pair
+ * Uses pre-built price maps for O(1) lookups
  * @param {string} asset1 - First asset symbol (e.g., 'BTC')
  * @param {string} asset2 - Second asset symbol (e.g., 'ETH')
  * @param {number} ratio1 - First asset ratio (e.g., 70 for 70%)
@@ -253,6 +329,10 @@ async function getDCAPairDaily(asset1, asset2, ratio1, ratio2, startDate, endDat
     throw new Error(`No historical price data found for ${asset1} or ${asset2}`);
   }
   
+  // Build price maps once for O(1) lookups
+  const priceMap1 = buildPriceMap(prices1);
+  const priceMap2 = buildPriceMap(prices2);
+  
   // Get all dates in range
   const allDates = getDatesInRange(startDate, endDate);
   
@@ -272,8 +352,8 @@ async function getDCAPairDaily(asset1, asset2, ratio1, ratio2, startDate, endDat
   for (const dateStr of allDates) {
     // Check if this is a purchase date
     if (purchaseDateSet.has(dateStr)) {
-      const price1 = getPriceForDate(prices1, dateStr);
-      const price2 = getPriceForDate(prices2, dateStr);
+      const price1 = getPriceFromMap(priceMap1, dateStr);
+      const price2 = getPriceFromMap(priceMap2, dateStr);
       
       if (price1 !== null && price2 !== null) {
         // Split amount according to ratio
@@ -292,9 +372,9 @@ async function getDCAPairDaily(asset1, asset2, ratio1, ratio2, startDate, endDat
       }
     }
     
-    // Calculate current values
-    const currentPrice1 = getPriceForDate(prices1, dateStr);
-    const currentPrice2 = getPriceForDate(prices2, dateStr);
+    // Calculate current values using O(1) lookups
+    const currentPrice1 = getPriceFromMap(priceMap1, dateStr);
+    const currentPrice2 = getPriceFromMap(priceMap2, dateStr);
     
     const value1 = currentPrice1 !== null ? holdings1 * currentPrice1 : 0;
     const value2 = currentPrice2 !== null ? holdings2 * currentPrice2 : 0;
@@ -318,6 +398,7 @@ async function getDCAPairDaily(asset1, asset2, ratio1, ratio2, startDate, endDat
 
 /**
  * Calculate HODL (buy once at start) equity curve
+ * Uses pre-built price map for O(1) lookups
  * @param {string} asset - Asset symbol
  * @param {Date} startDate - Start date
  * @param {Date} endDate - End date
@@ -334,11 +415,14 @@ async function getHODLDaily(asset, startDate, endDate, purchaseAmount) {
     throw new Error(`No historical price data found for ${asset}`);
   }
   
+  // Build price map once for O(1) lookups
+  const priceMap = buildPriceMap(historicalPrices);
+  
   // Get all dates in range
   const allDates = getDatesInRange(startDate, endDate);
   
   // Get initial price (first available price)
-  const initialPrice = getPriceForDate(historicalPrices, allDates[0]);
+  const initialPrice = getPriceFromMap(priceMap, allDates[0]);
   
   if (initialPrice === null) {
     throw new Error(`No price data available at start date for ${asset}`);
@@ -348,11 +432,11 @@ async function getHODLDaily(asset, startDate, endDate, purchaseAmount) {
   const afterCommission = purchaseAmount * (1 - COMMISSION_RATE);
   const holdings = afterCommission / initialPrice;
   
-  // Calculate daily values
+  // Calculate daily values using O(1) lookups
   const dailyData = [];
   
   for (const dateStr of allDates) {
-    const currentPrice = getPriceForDate(historicalPrices, dateStr);
+    const currentPrice = getPriceFromMap(priceMap, dateStr);
     const currentValue = currentPrice !== null ? holdings * currentPrice : 0;
     
     dailyData.push({
@@ -369,6 +453,7 @@ async function getHODLDaily(asset, startDate, endDate, purchaseAmount) {
 
 /**
  * Calculate HODL equity curve for asset pair
+ * Uses pre-built price maps for O(1) lookups
  * @param {string} asset1 - First asset symbol
  * @param {string} asset2 - Second asset symbol
  * @param {number} ratio1 - First asset ratio
@@ -392,12 +477,16 @@ async function getHODLPairDaily(asset1, asset2, ratio1, ratio2, startDate, endDa
     throw new Error(`No historical price data found for ${asset1} or ${asset2}`);
   }
   
+  // Build price maps once for O(1) lookups
+  const priceMap1 = buildPriceMap(prices1);
+  const priceMap2 = buildPriceMap(prices2);
+  
   // Get all dates in range
   const allDates = getDatesInRange(startDate, endDate);
   
   // Get initial prices
-  const initialPrice1 = getPriceForDate(prices1, allDates[0]);
-  const initialPrice2 = getPriceForDate(prices2, allDates[0]);
+  const initialPrice1 = getPriceFromMap(priceMap1, allDates[0]);
+  const initialPrice2 = getPriceFromMap(priceMap2, allDates[0]);
   
   if (initialPrice1 === null || initialPrice2 === null) {
     throw new Error(`No price data available at start date for ${asset1} or ${asset2}`);
@@ -415,12 +504,12 @@ async function getHODLPairDaily(asset1, asset2, ratio1, ratio2, startDate, endDa
   const holdings1 = afterCommission1 / initialPrice1;
   const holdings2 = afterCommission2 / initialPrice2;
   
-  // Calculate daily values
+  // Calculate daily values using O(1) lookups
   const dailyData = [];
   
   for (const dateStr of allDates) {
-    const currentPrice1 = getPriceForDate(prices1, dateStr);
-    const currentPrice2 = getPriceForDate(prices2, dateStr);
+    const currentPrice1 = getPriceFromMap(priceMap1, dateStr);
+    const currentPrice2 = getPriceFromMap(priceMap2, dateStr);
     
     const value1 = currentPrice1 !== null ? holdings1 * currentPrice1 : 0;
     const value2 = currentPrice2 !== null ? holdings2 * currentPrice2 : 0;
@@ -751,4 +840,7 @@ module.exports = {
   getCachedDCA,
   cacheDCA,
   invalidateDCACache,
+  getSimCacheStats,
+  buildPriceMap,
+  getPriceFromMap,
 };

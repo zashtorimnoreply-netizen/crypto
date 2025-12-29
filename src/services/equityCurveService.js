@@ -7,14 +7,31 @@
 
 const db = require('../db');
 const priceService = require('./priceService');
+const { redisClient } = require('../redis');
 const { isStablecoin } = require('../utils/priceSymbolMap');
 
-// In-memory cache for equity curves
-// Key: portfolio_id:start_date:end_date
-// Value: { data, timestamp, ttl }
-const equityCurveCache = new Map();
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour cache
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours cache
 const CACHE_MAX_SIZE = 100; // Max cached curves per instance
+
+// Cache statistics for monitoring
+const cacheStats = {
+  hits: 0,
+  misses: 0,
+};
+
+/**
+ * Get cache statistics
+ */
+function getCacheStats() {
+  const total = cacheStats.hits + cacheStats.misses;
+  const hitRate = total > 0 ? (cacheStats.hits / total) * 100 : 0;
+  return {
+    hits: cacheStats.hits,
+    misses: cacheStats.misses,
+    hitRate: hitRate.toFixed(2) + '%',
+    size: CACHE_MAX_SIZE,
+  };
+}
 
 /**
  * Clean up expired cache entries
@@ -46,46 +63,110 @@ function getCacheKey(portfolioId, startDate, endDate) {
 }
 
 /**
- * Get cached equity curve
+ * Get cached equity curve - checks Redis first, then local cache
  */
-function getCachedEquityCurve(portfolioId, startDate, endDate) {
+async function getCachedEquityCurve(portfolioId, startDate, endDate) {
   const key = getCacheKey(portfolioId, startDate, endDate);
+
+  // Try Redis cache first
+  if (redisClient && redisClient.isOpen) {
+    try {
+      const redisKey = `equity_curve:${key}`;
+      const cached = await redisClient.get(redisKey);
+      if (cached) {
+        const entry = JSON.parse(cached);
+        if (Date.now() - entry.timestamp < CACHE_TTL_MS) {
+          cacheStats.hits++;
+          console.log(`Redis cache HIT for equity curve: ${key}`);
+          return entry.data;
+        }
+      }
+      cacheStats.misses++;
+      console.log(`Redis cache MISS for equity curve: ${key}`);
+    } catch (error) {
+      console.error('Redis cache error:', error.message);
+      cacheStats.misses++;
+    }
+  }
+
+  // Fall back to local cache
   const entry = equityCurveCache.get(key);
-  
+
   if (entry && Date.now() - entry.timestamp < CACHE_TTL_MS) {
-    console.log(`Cache HIT for equity curve: ${key}`);
+    cacheStats.hits++;
+    console.log(`Local cache HIT for equity curve: ${key}`);
     return entry.data;
   }
-  
-  console.log(`Cache MISS for equity curve: ${key}`);
+
+  cacheStats.misses++;
+  console.log(`Local cache MISS for equity curve: ${key}`);
   return null;
 }
 
 /**
- * Cache equity curve data
+ * Cache equity curve data in both Redis and local cache
  */
-function cacheEquityCurve(portfolioId, startDate, endDate, data) {
+async function cacheEquityCurve(portfolioId, startDate, endDate, data) {
   const key = getCacheKey(portfolioId, startDate, endDate);
-  
-  cleanExpiredCache();
-  
-  equityCurveCache.set(key, {
+  const entry = {
     data,
     timestamp: Date.now(),
-  });
+    ttl: CACHE_TTL_MS,
+  };
+
+  cleanExpiredCache();
+
+  // Cache in local memory
+  equityCurveCache.set(key, entry);
+
+  // Also cache in Redis if available
+  if (redisClient && redisClient.isOpen) {
+    try {
+      const redisKey = `equity_curve:${key}`;
+      await redisClient.setEx(redisKey, CACHE_TTL_MS / 1000, JSON.stringify(entry));
+      console.log(`Cached equity curve in Redis: ${redisKey}`);
+    } catch (error) {
+      console.error('Redis cache write error:', error.message);
+    }
+  }
+
   console.log(`Cached equity curve: ${key}`);
 }
 
 /**
- * Invalidate cache for a portfolio
+ * Invalidate cache for a portfolio - both local and Redis
  */
-function invalidatePortfolioCache(portfolioId) {
+async function invalidatePortfolioCache(portfolioId) {
+  let invalidated = 0;
+
+  // Invalidate local cache
   for (const key of equityCurveCache.keys()) {
     if (key.startsWith(portfolioId)) {
       equityCurveCache.delete(key);
-      console.log(`Invalidated cache: ${key}`);
+      invalidated++;
     }
   }
+
+  // Invalidate Redis cache
+  if (redisClient && redisClient.isOpen) {
+    try {
+      let cursor = '0';
+      do {
+        const result = await redisClient.scan(cursor, { MATCH: `equity_curve:${portfolioId}:*`, COUNT: 100 });
+        cursor = result.cursor;
+        const keys = result.keys;
+        if (keys.length > 0) {
+          await redisClient.del(keys);
+          invalidated += keys.length;
+        }
+      } while (cursor !== '0');
+    } catch (error) {
+      console.error('Redis cache invalidation error:', error.message);
+    }
+  }
+
+  console.log(`Invalidated ${invalidated} cache entries for portfolio: ${portfolioId}`);
+  return invalidated;
 }
 
 /**
@@ -519,5 +600,6 @@ module.exports = {
   getDateRange,
   getPriceForDate,
   invalidatePortfolioCache,
+  getCacheStats,
   CACHE_TTL_MS,
 };
