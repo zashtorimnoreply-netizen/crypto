@@ -9,8 +9,13 @@ export const useImport = (portfolioId) => {
   const [progress, setProgress] = useState(0);
 
   const uploadCSV = useCallback(async (file) => {
-    if (!file || !portfolioId) {
-      setError('File and portfolio are required');
+    if (!portfolioId) {
+      setError('Пожалуйста, выберите портфель перед загрузкой файла');
+      return null;
+    }
+
+    if (!file) {
+      setError('Пожалуйста, выберите CSV файл для загрузки');
       return null;
     }
 
@@ -58,8 +63,13 @@ export const useImport = (portfolioId) => {
   }, [portfolioId]);
 
   const syncBybit = useCallback(async (apiKey, apiSecret) => {
-    if (!apiKey || !apiSecret || !portfolioId) {
-      setError('API credentials and portfolio are required');
+    if (!portfolioId) {
+      setError('Пожалуйста, выберите портфель перед синхронизацией');
+      return null;
+    }
+
+    if (!apiKey || !apiSecret) {
+      setError('API credentials are required');
       return null;
     }
 

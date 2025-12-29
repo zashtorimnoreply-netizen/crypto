@@ -1,7 +1,8 @@
-import { useState, useRef, useCallback } from 'react';
-import { FiUpload, FiFile, FiX, FiAlertCircle, FiCheck, FiChevronDown, FiChevronUp, FiDownload } from 'react-icons/fi';
+import { useState, useRef, useCallback, useContext } from 'react';
+import { FiUpload, FiX, FiAlertCircle, FiCheck, FiChevronDown, FiChevronUp, FiDownload } from 'react-icons/fi';
 import useImport from '../../hooks/useImport';
 import { getCsvTemplate } from '../../services/portfolioService';
+import PortfolioContext from '../../context/PortfolioContext';
 import Card from '../UI/Card';
 import Button from '../UI/Button';
 import Loading from '../UI/Loading';
@@ -10,13 +11,19 @@ const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 const CSVUpload = ({ portfolioId, onSuccess }) => {
+  const portfolioContext = useContext(PortfolioContext);
+  const portfolios = portfolioContext?.portfolios || [];
+  const currentPortfolioId = portfolioContext?.currentPortfolioId;
+
   const fileInputRef = useRef(null);
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileError, setFileError] = useState(null);
   const [showErrorDetails, setShowErrorDetails] = useState(false);
-  
-  const { uploadCSV, loading, error, progress, clearError } = useImport(portfolioId);
+
+  const effectivePortfolioId = String((portfolioId ?? currentPortfolioId ?? '') || '');
+
+  const { uploadCSV, loading, error, progress, clearError } = useImport(effectivePortfolioId);
   const [uploadResult, setUploadResult] = useState(null);
 
   const validateFile = useCallback((file) => {
@@ -52,6 +59,8 @@ const CSVUpload = ({ portfolioId, onSuccess }) => {
     e.stopPropagation();
     setDragActive(false);
 
+    if (!effectivePortfolioId) return;
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
       const validation = validateFile(file);
@@ -66,7 +75,7 @@ const CSVUpload = ({ portfolioId, onSuccess }) => {
         setSelectedFile(null);
       }
     }
-  }, [validateFile, clearError]);
+  }, [validateFile, clearError, effectivePortfolioId]);
 
   const handleFileSelect = useCallback((e) => {
     const file = e.target.files?.[0];
@@ -105,6 +114,17 @@ const CSVUpload = ({ portfolioId, onSuccess }) => {
       }
     }
   };
+
+  const handlePortfolioChange = useCallback((e) => {
+    const newPortfolioId = e.target.value;
+    setFileError(null);
+    clearError();
+    setUploadResult(null);
+
+    if (portfolioContext?.switchPortfolio) {
+      portfolioContext.switchPortfolio(newPortfolioId);
+    }
+  }, [clearError, portfolioContext]);
 
   const handleRetry = async () => {
     setUploadResult(null);
@@ -159,6 +179,41 @@ const CSVUpload = ({ portfolioId, onSuccess }) => {
     <Card className="w-full" padding={false}>
       <div className="p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Upload CSV</h3>
+
+        {portfolioContext && portfolios.length > 0 && (
+          <div className="mb-4">
+            <label htmlFor="csv-portfolio" className="block text-sm font-medium text-gray-700 mb-2">
+              Портфель
+            </label>
+            <div className="relative">
+              <select
+                id="csv-portfolio"
+                value={effectivePortfolioId}
+                onChange={handlePortfolioChange}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 pr-10 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+                aria-label="Выберите портфель"
+                disabled={loading}
+              >
+                <option value="" disabled>
+                  Выберите портфель
+                </option>
+                {portfolios.map((p) => (
+                  <option key={p.portfolio_id} value={String(p.portfolio_id)}>
+                    {p.portfolio_name || `Portfolio ${p.portfolio_id}`}
+                  </option>
+                ))}
+              </select>
+              <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            </div>
+          </div>
+        )}
+
+        {!effectivePortfolioId && (
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-2">
+            <FiAlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-yellow-800">Пожалуйста, выберите портфель перед загрузкой файла</p>
+          </div>
+        )}
         
         {/* Drop Zone */}
         <div
@@ -184,9 +239,9 @@ const CSVUpload = ({ portfolioId, onSuccess }) => {
             type="file"
             accept=".csv"
             onChange={handleFileSelect}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+            className={`absolute inset-0 w-full h-full opacity-0 z-10 ${loading || !effectivePortfolioId ? 'cursor-not-allowed' : 'cursor-pointer'}`}
             aria-label="Choose CSV file"
-            disabled={loading}
+            disabled={loading || !effectivePortfolioId}
           />
 
           <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
@@ -368,6 +423,7 @@ const CSVUpload = ({ portfolioId, onSuccess }) => {
               variant="primary"
               className="w-full"
               size="lg"
+              disabled={!effectivePortfolioId}
             >
               Upload CSV
             </Button>

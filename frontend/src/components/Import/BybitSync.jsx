@@ -18,6 +18,11 @@ const BybitSync = ({ portfolioId, onSuccess }) => {
   const { syncBybit, loading, progress, clearError } = useImport(portfolioId);
 
   const validateCredentials = useCallback(() => {
+    if (!portfolioId) {
+      setError('Пожалуйста, выберите портфель перед синхронизацией');
+      return false;
+    }
+
     if (!apiKey.trim()) {
       setError('API Key is required');
       return false;
@@ -43,7 +48,7 @@ const BybitSync = ({ portfolioId, onSuccess }) => {
       return false;
     }
     return true;
-  }, [apiKey, apiSecret]);
+  }, [apiKey, apiSecret, portfolioId]);
 
   const handleSync = async () => {
     clearError();
